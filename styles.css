@@ -139,6 +139,39 @@ button { cursor: pointer; }
 .result-line strong { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .result-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
 .result-average { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary-output {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7e5;
+  border-radius: 8px;
+  background: #f5f7f8;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.summary-metrics,
+.summary-statuses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.summary-output p {
+  margin: 0;
+  font-weight: 500;
+}
+.summary-output strong {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.summary-statuses {
+  min-width: 120px;
+  align-items: flex-start;
+}
 .status { font-size: 11px; font-weight: 700; }
 .status.pass { color: #285a8d; }
 .status.fail { color: var(--red); }

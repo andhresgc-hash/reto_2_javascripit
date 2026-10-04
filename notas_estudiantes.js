@@ -47,13 +47,42 @@ function getStudents() {
 }
 
 function updateProgress() {
+  const courseIsFull = registeredCount === STUDENT_COUNT;
+
   progressTrack.setAttribute("aria-valuenow", String(registeredCount));
   progressFill.style.width = `${registeredCount / STUDENT_COUNT * 100}%`;
-  progressText.textContent = registeredCount === STUDENT_COUNT
+  progressText.textContent = courseIsFull
     ? "Curso completo · 10 estudiantes"
     : `Estudiante ${registeredCount + 1} de ${STUDENT_COUNT}`;
-  addButton.disabled = registeredCount === STUDENT_COUNT;
-  addButton.textContent = registeredCount === STUDENT_COUNT ? "Curso completo" : "Agregar alumno";
+
+  nameInput.disabled = courseIsFull;
+  gradeInputs.forEach((input) => {
+    input.disabled = courseIsFull;
+  });
+
+  addButton.disabled = courseIsFull;
+  addButton.textContent = courseIsFull ? "Curso completo" : "Agregar alumno";
+}
+
+function getGroupAverage(students) {
+  if (students.length === 0) return 0;
+
+  const allGrades = students.flatMap((student) => student.grades);
+  return average(allGrades);
+}
+
+function getExamAverage(students, examIndex) {
+  if (students.length === 0) return 0;
+
+  const examGrades = students.map((student) => student.grades[examIndex]);
+  return average(examGrades);
+}
+
+function getStatusSummary(students) {
+  const passed = students.filter((student) => student.average >= PASSING_GRADE).length;
+  const failed = students.length - passed;
+
+  return { passed, failed };
 }
 
 function renderStudentResults(students) {
@@ -83,11 +112,34 @@ function renderStudentResults(students) {
 }
 
 function renderReport() {
-  const students = getStudents();
+  const students = getStudents().sort((a, b) => a.average - b.average);
+  const groupAverage = getGroupAverage(students);
+  const examAverages = [
+    getExamAverage(students, 0),
+    getExamAverage(students, 1),
+    getExamAverage(students, 2)
+  ];
+  const { passed, failed } = getStatusSummary(students);
+
   document.getElementById("report-title").textContent = registeredCount === STUDENT_COUNT
     ? "Resultados del curso"
     : "Resultados parciales";
   document.querySelector(".complete-label").textContent = `${registeredCount} de ${STUDENT_COUNT} registrados`;
+
+  const summaryOutput = document.getElementById("summary-output");
+  summaryOutput.innerHTML = `
+    <div class="summary-metrics">
+      <p>Promedio del curso C1: <strong>${formatGrade(examAverages[0])}</strong></p>
+      <p>Promedio del curso C2: <strong>${formatGrade(examAverages[1])}</strong></p>
+      <p>Promedio del curso C3: <strong>${formatGrade(examAverages[2])}</strong></p>
+      <p>Promedio Final Curso: <strong>${formatGrade(groupAverage)}</strong></p>
+    </div>
+    <div class="summary-statuses">
+      <p>Aprobados: <strong>${passed}</strong></p>
+      <p>Reprobados: <strong>${failed}</strong></p>
+    </div>
+  `;
+
   renderStudentResults(students);
   reportSection.hidden = false;
 }
@@ -105,9 +157,21 @@ function validateForm() {
     return null;
   }
 
+  const validNamePattern = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/;
+  if (!validNamePattern.test(name)) {
+    showValidationError("El nombre solo debe contener letras y espacios.", nameInput);
+    return null;
+  }
+
   const values = [];
   for (const input of gradeInputs) {
-    const value = input.value.trim() === "" ? NaN : Number(input.value);
+    const valueText = input.value.trim();
+    if (valueText === "") {
+      showValidationError("Ingresa una nota válida entre 0 y 100 en cada certamen.", input);
+      return null;
+    }
+
+    const value = Number(valueText);
     if (!Number.isFinite(value) || value < 0 || value > 100) {
       showValidationError("Ingresa una nota válida entre 0 y 100 en cada certamen.", input);
       return null;
@@ -120,6 +184,11 @@ function validateForm() {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+
+  if (registeredCount >= STUDENT_COUNT) {
+    return;
+  }
+
   formMessage.textContent = "";
 
   const student = validateForm();
